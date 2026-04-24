@@ -13,12 +13,19 @@ Figma Variables 수정
 
 [GitHub Actions - 자동 실행]
 Color.json 변경 감지
-  → convert.mjs 실행  → tokens/color.dtcg.tokens.json 생성 (앱 개발자용)
-  → normalize.mjs 실행 → tokens/color.normalized.tokens.json 생성 (웹 개발자용)
+  → convert.mjs   : Color.json → color.dtcg.tokens.json (앱 개발자용)
+  → normalize.mjs : color.dtcg.tokens.json → color.normalized.tokens.json (웹 개발자용)
   → 결과물 자동 커밋
 
-[개발자]
-git pull → 결과물 바로 사용
+[앱 개발자 - iOS / Android]
+color.dtcg.tokens.json HTTP fetch
+  → Style Dictionary → 플랫폼별 코드 생성 (Swift / Compose)
+
+[웹 개발자 - wadiz-frontend]
+color.normalized.tokens.json HTTP fetch (sync.mjs)
+  → build.mjs → SCSS/CSS/JS 빌드
+  → @wadiz/tokens/build/scss/_color.scss   ← Source of Truth
+  → waffle/src/styles/common/_color.scss   (@forward 참조)
 ```
 
 ## 파일 설명
@@ -44,10 +51,14 @@ npm run build
 
 ## 앱 개발자 사용 방법
 
-`color.dtcg.tokens.json`을 Style Dictionary에 연결하여 플랫폼별 코드를 생성합니다.
+`color.dtcg.tokens.json`을 HTTP fetch 후 Style Dictionary로 플랫폼별 코드를 생성합니다.
+
+```
+https://raw.githubusercontent.com/wadiz-yoonjung-kim/wadiz-tokens/main/tokens/color.dtcg.tokens.json
+```
 
 ```js
-// iOS 예시
+// Style Dictionary 설정 예시 (iOS)
 {
   source: ['color.dtcg.tokens.json'],
   platforms: {
@@ -61,9 +72,12 @@ npm run build
 
 ## 웹 개발자 사용 방법
 
-`color.normalized.tokens.json`을 Style Dictionary에 연결하여 SCSS/CSS/JS를 생성합니다.
+`wadiz-frontend`에서 아래 명령으로 최신 토큰을 fetch 후 빌드합니다.
 
 ```bash
-# wadiz-frontend에서 실행
-pnpm --filter @wadiz/tokens run build
+pnpm --filter @wadiz/tokens run sync-build
+```
+
+```
+https://raw.githubusercontent.com/wadiz-yoonjung-kim/wadiz-tokens/main/tokens/color.normalized.tokens.json
 ```
