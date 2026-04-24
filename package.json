@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "normalize": "node scripts/normalize.mjs"
+    "convert": "node scripts/convert.mjs",
+    "normalize": "node scripts/normalize.mjs",
+    "build": "node scripts/convert.mjs && node scripts/normalize.mjs"
   }
 }

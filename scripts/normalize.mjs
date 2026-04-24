@@ -1,9 +1,13 @@
 /**
- * Figma Variables JSON → DTCG 형식 변환 스크립트
+ * DTCG JSON → 웹 네이밍 변환 스크립트
  *
  * 실행: node scripts/normalize.mjs
- * 입력: tokens/Color.json (Figma Variables 플러그인 추출 원본)
- * 출력: tokens/color.normalized.tokens.json (플랫폼별 빌드 입력용)
+ * 입력: tokens/color.dtcg.tokens.json (DTCG 형식, Figma 네이밍)
+ * 출력: tokens/color.normalized.tokens.json (웹 변수명 호환, 웹 개발자용)
+ *
+ * 변환 규칙:
+ * - Figma 네이밍(Mint/M600) → 웹 네이밍(color-mint-600)
+ * - 웹 레거시 변수명 유지 ($color-rgba-dark-54, -68, $color-rgba-light-84)
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -13,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TOKENS_DIR = resolve(__dirname, '../tokens');
 
-const figmaJson = JSON.parse(readFileSync(resolve(TOKENS_DIR, 'Color.json'), 'utf-8'));
+const dtcgJson = JSON.parse(readFileSync(resolve(TOKENS_DIR, 'color.dtcg.tokens.json'), 'utf-8'));
 
 // 웹 레거시 변수명 유지를 위한 BlackAlpha 번호 매핑
 // (BlackAlpha/50 → $color-rgba-dark-54, BlackAlpha/70 → $color-rgba-dark-68)
@@ -47,15 +51,6 @@ const GRADIENT_DIR_MAP = {
   'RightBottom': 'right-bottom',
 };
 
-// Figma RGB(0~1) → hex 변환
-function figmaColorToHex({ r, g, b, a }) {
-  const toHex = (v) => Math.round(v * 255).toString(16).padStart(2, '0');
-  if (a !== undefined && a < 0.999) {
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(a)}`;
-  }
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
 // 숫자 앞 대문자 prefix 제거 (M100→100, GE100→100 등)
 function stripPrefix(key) {
   return key.replace(/^[A-Z]+/, '');
@@ -73,74 +68,54 @@ function setNestedValue(obj, path, value) {
 
 const result = { color: { $type: 'color' } };
 
-// 첫 번째 모드 ID 추출
-const defaultModeId = Object.keys(figmaJson.modes)[0];
+for (const [group, tokens] of Object.entries(dtcgJson)) {
+  for (const [key, token] of Object.entries(tokens)) {
+    const entry = {
+      $value: token.$value,
+      $type: 'color',
+      ...(token.$description ? { $description: token.$description } : {}),
+    };
 
-for (const variable of figmaJson.variables) {
-  if (variable.type !== 'COLOR') continue;
+    let path;
 
-  const resolvedColor = variable.resolvedValuesByMode?.[defaultModeId]?.resolvedValue
-    ?? variable.valuesByMode?.[defaultModeId];
+    switch (group) {
+      case 'Mint':    path = ['mint',   stripPrefix(key)]; break;
+      case 'Gray':    path = ['gray',   stripPrefix(key)]; break;
+      case 'Red':     path = ['red',    stripPrefix(key)]; break;
+      case 'Blue':    path = ['blue',   stripPrefix(key)]; break;
+      case 'Yellow':  path = ['yellow', stripPrefix(key)]; break;
+      case 'Purple':  path = ['purple', stripPrefix(key)]; break;
+      case 'Green':   path = ['green',  stripPrefix(key)]; break;
 
-  if (!resolvedColor || typeof resolvedColor !== 'object') continue;
+      case 'BlackAlpha':
+        setNestedValue(result.color, ['rgba', 'dark', key], entry);
+        if (BLACK_ALPHA_MAP[key] && BLACK_ALPHA_MAP[key] !== key) {
+          setNestedValue(result.color, ['rgba', 'dark', BLACK_ALPHA_MAP[key]], entry);
+        }
+        continue;
 
-  const hexValue = figmaColorToHex(resolvedColor);
-  const entry = {
-    $value: hexValue,
-    $type: 'color',
-    ...(variable.description ? { $description: variable.description } : {}),
-  };
+      case 'WhiteAlpha':
+        setNestedValue(result.color, ['rgba', 'light', key], entry);
+        if (WHITE_ALPHA_MAP[key] && WHITE_ALPHA_MAP[key] !== key) {
+          setNestedValue(result.color, ['rgba', 'light', WHITE_ALPHA_MAP[key]], entry);
+        }
+        continue;
 
-  // "Mint/M600" → group: "Mint", key: "M600"
-  const slashIndex = variable.name.indexOf('/');
-  if (slashIndex === -1) continue;
+      case 'Etc':
+        path = ['etc', ETC_KEY_MAP[key] ?? key];
+        break;
+      case 'GradientWAi':
+        path = ['gradient', 'wai', GRADIENT_DIR_MAP[key] ?? key];
+        break;
+      case 'GradientBlue':
+        path = ['gradient', 'blue', GRADIENT_DIR_MAP[key] ?? key];
+        break;
+      default:
+        continue;
+    }
 
-  const group = variable.name.slice(0, slashIndex);
-  const key = variable.name.slice(slashIndex + 1);
-
-  let path;
-
-  switch (group) {
-    case 'Mint':    path = ['mint',   stripPrefix(key)]; break;
-    case 'Gray':    path = ['gray',   stripPrefix(key)]; break;
-    case 'Red':     path = ['red',    stripPrefix(key)]; break;
-    case 'Blue':    path = ['blue',   stripPrefix(key)]; break;
-    case 'Yellow':  path = ['yellow', stripPrefix(key)]; break;
-    case 'Purple':  path = ['purple', stripPrefix(key)]; break;
-    case 'Green':   path = ['green',  stripPrefix(key)]; break;
-
-    case 'BlackAlpha':
-      // Figma 자연 이름으로 추가 ($color-rgba-dark-50 등)
-      setNestedValue(result.color, ['rgba', 'dark', key], entry);
-      // 레거시 변수명도 추가 ($color-rgba-dark-54 등)
-      if (BLACK_ALPHA_MAP[key] && BLACK_ALPHA_MAP[key] !== key) {
-        setNestedValue(result.color, ['rgba', 'dark', BLACK_ALPHA_MAP[key]], entry);
-      }
-      continue;
-
-    case 'WhiteAlpha':
-      // Figma 자연 이름으로 추가 ($color-rgba-light-80 등)
-      setNestedValue(result.color, ['rgba', 'light', key], entry);
-      // 레거시 변수명도 추가 ($color-rgba-light-84 등)
-      if (WHITE_ALPHA_MAP[key] && WHITE_ALPHA_MAP[key] !== key) {
-        setNestedValue(result.color, ['rgba', 'light', WHITE_ALPHA_MAP[key]], entry);
-      }
-      continue;
-
-    case 'Etc':
-      path = ['etc', ETC_KEY_MAP[key] ?? key];
-      break;
-    case 'GradientWAi':
-      path = ['gradient', 'wai', GRADIENT_DIR_MAP[key] ?? key];
-      break;
-    case 'GradientBlue':
-      path = ['gradient', 'blue', GRADIENT_DIR_MAP[key] ?? key];
-      break;
-    default:
-      continue;
+    setNestedValue(result.color, path, entry);
   }
-
-  setNestedValue(result.color, path, entry);
 }
 
 writeFileSync(
