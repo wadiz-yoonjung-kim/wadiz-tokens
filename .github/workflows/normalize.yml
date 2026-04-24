@@ -3,7 +3,7 @@ name: Normalize Tokens
 on:
   push:
     paths:
-      - 'tokens/color.tokens.json'
+      - 'tokens/Color.json'
 
 jobs:
   normalize:
