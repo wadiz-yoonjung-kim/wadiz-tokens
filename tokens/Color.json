@@ -988,7 +988,7 @@
     },
     {
       "id": "VariableID:11134:947",
-      "name": "Etc/kakao--container",
+      "name": "Etc/kakao",
       "description": "",
       "type": "COLOR",
       "valuesByMode": { "11130:0": { "r": 0.9960784316062927, "g": 0.8980392217636108, "b": 0, "a": 1 } },
