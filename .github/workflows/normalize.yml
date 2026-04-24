@@ -1,0 +1,29 @@
+name: Normalize Tokens
+
+on:
+  push:
+    paths:
+      - 'tokens/color.tokens.json'
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: normalize.mjs 실행
+        run: node scripts/normalize.mjs
+
+      - name: color.normalized.tokens.json 커밋
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tokens/color.normalized.tokens.json
+          git diff --staged --quiet || git commit -m "chore: color.normalized.tokens.json 자동 생성"
+          git push
