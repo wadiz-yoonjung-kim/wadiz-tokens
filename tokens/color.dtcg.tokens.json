@@ -310,7 +310,7 @@
       "$value": "#ff5a00",
       "$type": "color"
     },
-    "kakao--container": {
+    "kakao": {
       "$value": "#fee500",
       "$type": "color"
     },
