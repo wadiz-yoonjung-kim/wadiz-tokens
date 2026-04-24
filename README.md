@@ -25,6 +25,7 @@ color.dtcg.tokens.json HTTP fetch
 color.normalized.tokens.json HTTP fetch (sync.mjs)
   → build.mjs → SCSS/CSS/JS 빌드
   → @wadiz/tokens/build/scss/_color.scss   ← Source of Truth
+  → @wadiz/tokens/src/scss/_color.scss     (src/로 copy)
   → waffle/src/styles/common/_color.scss   (@forward 참조)
 ```
 
