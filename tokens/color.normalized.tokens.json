@@ -322,11 +322,11 @@
       }
     },
     "etc": {
-      "wadiz-store": {
+      "wadizStore": {
         "$value": "#2960ff",
         "$type": "color"
       },
-      "maison-de-wa": {
+      "maisonDeWa": {
         "$value": "#ff5a00",
         "$type": "color"
       },
@@ -429,21 +429,21 @@
     },
     "gradient": {
       "wai": {
-        "left-top": {
+        "LeftTop": {
           "$value": "#7869ff",
           "$type": "color"
         },
-        "right-bottom": {
+        "RightBottom": {
           "$value": "#18d6d8",
           "$type": "color"
         }
       },
       "blue": {
-        "left-top": {
+        "LeftTop": {
           "$value": "#507def",
           "$type": "color"
         },
-        "right-bottom": {
+        "RightBottom": {
           "$value": "#00d6d9",
           "$type": "color"
         }

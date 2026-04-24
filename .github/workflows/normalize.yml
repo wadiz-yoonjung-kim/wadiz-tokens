@@ -3,11 +3,15 @@ name: Normalize Tokens
 on:
   push:
     paths:
-      - 'tokens/Color.json'
+      - 'tokens/*.json'
+    branches:
+      - main
 
 jobs:
   normalize:
     runs-on: ubuntu-latest
+    # 봇 커밋으로 인한 무한 루프 방지
+    if: github.actor != 'github-actions[bot]'
     permissions:
       contents: write
     steps:
@@ -17,16 +21,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Color.json → color.dtcg.tokens.json 변환
+      - name: Figma JSON → DTCG 변환
         run: node scripts/convert.mjs
 
-      - name: color.dtcg.tokens.json → color.normalized.tokens.json 변환
+      - name: DTCG → normalized 변환 및 manifest 생성
         run: node scripts/normalize.mjs
 
       - name: 결과물 커밋
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tokens/color.dtcg.tokens.json tokens/color.normalized.tokens.json
-          git diff --staged --quiet || git commit -m "chore: 토큰 자동 변환 (color.dtcg, color.normalized)"
+          git add tokens/*.dtcg.tokens.json tokens/*.normalized.tokens.json tokens/manifest.json
+          git diff --staged --quiet || git commit -m "chore: 토큰 자동 변환"
           git push
